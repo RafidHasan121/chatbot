@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
- <head>
+  <head>
     <title>Chatbot Support</title>
     <style>
       #chatbot {
@@ -15,61 +15,90 @@
         margin-bottom: 10px;
       }
     </style>
- </head>
- <body>
-    <h1>Chatbot Support</h1>
-    <div id="chatbot">
-      <p>Hello, welcome to our chatbot support! How can I assist you today?</p>
-      <p>[user input]</p>
-      <p>[chatbot response]</p>
-    </div>
-    <input type="text" id="userInput" placeholder="Type your message here..."  />
-    {% csrf_token %}
+  </head>
+  <body>
+    <main>
+      <div>
+        <label>Choose Project</label>
+        <select name="projectSelect" id="projectSelect">
+          {% for each in dropdown %}
+          <option value={{each.name}}>{{each.name}}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <h1>Chatbot Support</h1>
+      <div id="chatbot">
+        <p>
+          Hello, welcome to our chatbot support! How can I assist you today?
+        </p>
+        <p>[user input]</p>
+        <p>[chatbot response]</p>
+      </div>
+      <input
+        type="text"
+        id="userInput"
+        placeholder="Type your message here..."
+      />
+      {% csrf_token %}
+    </main>
+
     <script>
-      const chatbot = document.getElementById('chatbot');
-      const userInput = document.getElementById('userInput');
+      const chatbot = document.getElementById("chatbot");
+      const userInput = document.getElementById("userInput");
+      const projectSelect = document.getElementById("projectSelect");
       // Retrieve the CSRF token from the DOM
-      const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-     
-      userInput.addEventListener('keydown', function(event) {
-         if (event.key === 'Enter') {
-           const userMessage = userInput.value;
-           chatbot.innerHTML += `<p>[user input]: ${userMessage}</p>`;
-           // Display a loading message
-           chatbot.innerHTML += `<p>Loading...</p>`;
-           // Disable the input field
-           userInput.disabled = true;
-           // Include the CSRF token in the headers
-           const xhr = new XMLHttpRequest();
-           xhr.open('POST', '/chatbot/', true); // Asynchronous request
-           xhr.setRequestHeader('Content-Type', 'application/json');
-           xhr.setRequestHeader('X-CSRFToken', csrftoken); // Set the CSRF token in the headers
-           xhr.onload = function() {
-             if (xhr.status === 200) {
-               const chatbotResponse = JSON.parse(xhr.responseText).message;
-               // Remove the loading message and add the chatbot response
-               chatbot.innerHTML = chatbot.innerHTML.replace('<p>Loading...</p>', '');
-               chatbot.innerHTML += `<p>[chatbot response]: ${chatbotResponse}</p>`;
-             } else {
-               console.error('Request failed. Status code:', xhr.status);
-             }
-             // Re-enable the input field
-             userInput.disabled = false;
-           };
-           xhr.onerror = function() {
-             // Handle any errors that occur during the request
-             console.error('An error occurred during the request.');
-             // Re-enable the input field
-             userInput.disabled = false;
-           };
-           // Introduce a manual delay before sending the request
-           setTimeout(function() {
-             xhr.send(JSON.stringify({ message: userMessage }));
-           }, 1000); // Delay of 2000 milliseconds (2 seconds)
-           userInput.value = '';
-         }
+      const csrftoken = document.querySelector(
+        "[name=csrfmiddlewaretoken]"
+      ).value;
+
+      userInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          const userMessage = userInput.value;
+          const projectSelectedValue = projectSelect.value
+          chatbot.innerHTML += `<p>[user input]: ${userMessage}</p>`;
+          // Display a loading message
+          chatbot.innerHTML += `<p>Loading...</p>`;
+          // Disable the input field
+          userInput.disabled = true;
+          projectSelect.disabled = true;
+          // Include the CSRF token in the headers
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", "/chatbot/", true); // Asynchronous request
+          xhr.setRequestHeader("Content-Type", "application/json");
+          xhr.setRequestHeader("X-CSRFToken", csrftoken); // Set the CSRF token in the headers
+          xhr.onload = function () {
+            if (xhr.status === 200) {
+              const chatbotResponse = JSON.parse(xhr.responseText).message;
+              // Remove the loading message and add the chatbot response
+              chatbot.innerHTML = chatbot.innerHTML.replace(
+                "<p>Loading...</p>",
+                ""
+              );
+              chatbot.innerHTML += `<p>[chatbot response]: ${chatbotResponse}</p>`;
+            } else {
+              console.error("Request failed. Status code:", xhr.status);
+              chatbot.innerHTML = chatbot.innerHTML.replace(
+                "<p>Loading...</p>",
+                ""
+              );
+            }
+            // Re-enable the input field
+            userInput.disabled = false;
+          };
+          xhr.onerror = function () {
+            // Handle any errors that occur during the request
+            console.error("An error occurred during the request.");
+            // Re-enable the input field
+            userInput.disabled = false;
+            projectSelect.disabled = false;
+          };
+          // Introduce a manual delay before sending the request
+          setTimeout(function () {
+            xhr.send(JSON.stringify({ message: userMessage, project: projectSelectedValue}));
+          }, 1000); // Delay of 2000 milliseconds (2 seconds)
+          userInput.value = "";
+        }
       });
-     </script>
-     
- </body>
+    </script>
+  </body>
 </html>

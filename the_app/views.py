@@ -5,8 +5,21 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from openai import OpenAI
 from chatbot.settings import API_KEY, a_id
+import os
+from supabase import create_client, Client
 
-# writing functions
+def init_supabase():
+    url: str = os.environ.get("SUPABASE_URL")
+    key: str = os.environ.get("SUPABASE_KEY")
+    supabase: Client = create_client(url, key)
+    return supabase
+
+def get_projects(supabase):
+    response = supabase.table('projects').select("name", count = 'exact').execute()
+    return response
+
+def get_routes(supabase, project_name):
+    response = supabase.table('projects').select("routes").eq('projects.name', project_name).execute()
 
 def continue_run_request(client, msg, t_id):
     thread_message = client.beta.threads.messages.create(
@@ -21,12 +34,15 @@ def continue_run_request(client, msg, t_id):
     return run
 
 
-def new_run_request(client, msg):
+def new_run_request(client, msg, project_name):
+    supabase = init_supabase()
+    routes = get_routes(supabase, project_name)
+    # work here
     run = client.beta.threads.create_and_run(
         assistant_id= a_id,
         thread={
             "messages": [
-                {"role": "user", "content": msg}
+                {"role": "user", "content": "for the below json" + "\n" + msg}
             ]
         }
     )
@@ -55,7 +71,9 @@ def get_request(client, run):
 
 def index(request):
     request.session.flush()
-    return render(request, "chatbot.html")
+    client = init_supabase()
+    project_list = get_projects(client)
+    return render(request, "chatbot.html", context={"dropdown" : project_list.data})
 
 
 @csrf_exempt
@@ -63,7 +81,7 @@ def chatbot(request):
     if request.method == "POST":
         data = json.loads(request.body)
         message = data.get("message")
-
+        project = data.get("project")
         try:
             t_id = request.session['thread_id']
         except:
