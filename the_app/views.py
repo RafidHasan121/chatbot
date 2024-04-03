@@ -7,7 +7,66 @@ from openai import OpenAI
 from chatbot.settings import API_KEY, a_id
 import os
 from supabase import create_client, Client
+import sys
+import tiktoken
 
+def count_tokens(filename: str, model_name="gpt-4") -> int:
+    """Count the number of tokens in a file using TikToken."""
+    try:
+        with open(filename, 'r') as file:
+            content = file.read()
+            # Get the tokenizer encoding for the specified model
+            encoding = tiktoken.encoding_for_model(model_name)
+            tokens = encoding.encode(content)
+            return len(tokens)
+    except FileNotFoundError:
+        print("File not found.")
+        return 0
+
+# if __name__ == "__main__":
+#     if len(sys.argv) != 2:
+#         print("Usage: python script.py <filename>")
+#     else:
+#         filename = sys.argv[1]
+#         print("Number of tokens:", count_tokens(filename))
+
+
+def create_chunks(file_path, model_name="gpt-4", max_tokens_per_chunk=1500000):
+    # Get the tokenizer encoding for the specified model
+    encoding = tiktoken.encoding_for_model(model_name)
+
+    # Read the file
+    with open(file_path, 'r') as file:
+        text = file.read()
+
+    # Divide the text into chunks based on tokens
+    chunks = []
+    current_chunk = ""
+    current_token_count = 0
+
+    for line in text.split('\n'):
+        line_tokens = encoding.encode(line)
+        line_token_count = len(line_tokens)
+
+        if current_token_count + line_token_count > max_tokens_per_chunk:
+            chunks.append(current_chunk)
+            current_chunk = line + '\n'
+            current_token_count = line_token_count
+        else:
+            current_chunk += line + '\n'
+            current_token_count += line_token_count
+
+    if current_chunk:
+        chunks.append(current_chunk)
+
+    # Save each chunk to a separate text file
+    for i, chunk in enumerate(chunks):
+        chunk_file_path = f'chunk{i+1}.txt'
+        with open(chunk_file_path, 'w') as chunk_file:
+            chunk_file.write(chunk)
+
+# Example usage
+# create_chunks('songs_original.txt', model_name="gpt-4")
 
 def init_supabase():
     url: str = os.environ.get("SUPABASE_URL")
