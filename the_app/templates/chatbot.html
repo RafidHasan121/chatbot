@@ -21,8 +21,9 @@
       <div>
         <label>Choose Project</label>
         <select name="projectSelect" id="projectSelect">
+          <option value="" disabled selected>Choose Project</option>
           {% for each in dropdown %}
-          <option value={{each.name}}>{{each.name}}</option>
+          <option value="{{each.name}}">{{each.name}}</option>
           {% endfor %}
         </select>
       </div>
@@ -55,6 +56,13 @@
         if (event.key === "Enter") {
           const userMessage = userInput.value;
           const projectSelectedValue = projectSelect.value
+      
+          // Check if the project has been selected
+          if (projectSelectedValue === "" || projectSelectedValue === "Choose Project") {
+            alert("Please select a project first.");
+            return; // Prevent further execution
+          }
+          
           chatbot.innerHTML += `<p>[user input]: ${userMessage}</p>`;
           // Display a loading message
           chatbot.innerHTML += `<p>Loading...</p>`;

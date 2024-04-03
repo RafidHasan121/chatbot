@@ -8,18 +8,25 @@ from chatbot.settings import API_KEY, a_id
 import os
 from supabase import create_client, Client
 
+
 def init_supabase():
     url: str = os.environ.get("SUPABASE_URL")
     key: str = os.environ.get("SUPABASE_KEY")
     supabase: Client = create_client(url, key)
     return supabase
 
+
 def get_projects(supabase):
-    response = supabase.table('projects').select("name", count = 'exact').execute()
+    response = supabase.table('projects').select(
+        "name", count='exact').execute()
     return response
 
+
 def get_routes(supabase, project_name):
-    response = supabase.table('projects').select("routes").eq('projects.name', project_name).execute()
+    response = supabase.table('projects').select(
+        "routes").eq('name', project_name).execute()
+    return response
+
 
 def continue_run_request(client, msg, t_id):
     thread_message = client.beta.threads.messages.create(
@@ -29,7 +36,7 @@ def continue_run_request(client, msg, t_id):
     )
     run = client.beta.threads.runs.create(
         thread_id=t_id,
-        assistant_id= a_id
+        assistant_id=a_id
     )
     return run
 
@@ -37,12 +44,26 @@ def continue_run_request(client, msg, t_id):
 def new_run_request(client, msg, project_name):
     supabase = init_supabase()
     routes = get_routes(supabase, project_name)
-    # work here
+    
+    # convert json data
+    routes_json = json.dumps(routes.data[0].get('routes'))
+    
+    # Write the JSON string to a file
+    with open('routes.json', 'w') as json_file:
+        json_file.write(routes_json)
+    
+    # create file in openai
+    file_object = client.files.create(
+        file=open("routes.json", "rb"),
+        purpose="assistants"
+    )
+    print(file_object)
+    # create run 
     run = client.beta.threads.create_and_run(
         assistant_id= a_id,
         thread={
             "messages": [
-                {"role": "user", "content": "for the below json" + "\n" + msg}
+                {"role": "user", "content": "for the attached json file to this message, do the following" + "\n" + msg, "file_ids": [file_object.id]}
             ]
         }
     )
@@ -73,7 +94,7 @@ def index(request):
     request.session.flush()
     client = init_supabase()
     project_list = get_projects(client)
-    return render(request, "chatbot.html", context={"dropdown" : project_list.data})
+    return render(request, "chatbot.html", context={"dropdown": project_list.data})
 
 
 @csrf_exempt
@@ -86,17 +107,17 @@ def chatbot(request):
             t_id = request.session['thread_id']
         except:
             t_id = None
-        
+
         client = OpenAI(api_key=API_KEY)
-        
+
         # previous thread
         if t_id:
             run = continue_run_request(client, message, t_id)
             print(t_id)
-        
+
         # new thread
         else:
-            run = new_run_request(client, message)
+            run = new_run_request(client, message, project)
             request.session['thread_id'] = run.thread_id
             print("assigned")
 
