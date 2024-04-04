@@ -31,20 +31,16 @@ def count_tokens(filename: str, model_name="gpt-4") -> int:
 #         print("Number of tokens:", count_tokens(filename))
 
 
-def create_chunks(file_path, model_name="gpt-4", max_tokens_per_chunk=1500000):
+def create_chunks(the_file, model_name="gpt-4-turbo-preview", max_tokens_per_chunk=125000):
     # Get the tokenizer encoding for the specified model
     encoding = tiktoken.encoding_for_model(model_name)
-
-    # Read the file
-    with open(file_path, 'r') as file:
-        text = file.read()
 
     # Divide the text into chunks based on tokens
     chunks = []
     current_chunk = ""
     current_token_count = 0
 
-    for line in text.split('\n'):
+    for line in the_file.split('\n'):
         line_tokens = encoding.encode(line)
         line_token_count = len(line_tokens)
 
@@ -59,11 +55,16 @@ def create_chunks(file_path, model_name="gpt-4", max_tokens_per_chunk=1500000):
     if current_chunk:
         chunks.append(current_chunk)
 
+    file_list = []
+    
     # Save each chunk to a separate text file
     for i, chunk in enumerate(chunks):
         chunk_file_path = f'chunk{i+1}.txt'
         with open(chunk_file_path, 'w') as chunk_file:
             chunk_file.write(chunk)
+        file_list.append(chunk_file_path)
+    
+    return file_list
 
 # Example usage
 # create_chunks('songs_original.txt', model_name="gpt-4")
@@ -107,22 +108,28 @@ def new_run_request(client, msg, project_name):
     # convert json data
     routes_json = json.dumps(routes.data[0].get('routes'))
     
-    # Write the JSON string to a file
-    with open('routes.json', 'w') as json_file:
-        json_file.write(routes_json)
+    # creating chunks
+    file_list = create_chunks(routes_json)
     
-    # create file in openai
-    file_object = client.files.create(
-        file=open("routes.json", "rb"),
-        purpose="assistants"
-    )
-    print(file_object)
+    #counting each chunk token size
+    # for each in file_list:
+    #     print(count_tokens(each))
+    
+    # create files in openai
+    id_list = []
+    for each in file_list:
+        file_object = client.files.create(
+            file=open(each, "rb"),
+            purpose="assistants"
+        )
+        id_list.append(file_object.id)
+    
     # create run 
     run = client.beta.threads.create_and_run(
         assistant_id= a_id,
         thread={
             "messages": [
-                {"role": "user", "content": "for the attached json file to this message, do the following" + "\n" + msg, "file_ids": [file_object.id]}
+                {"role": "user", "content": "The file attached is a .txt file which has a json in it, do the following for the json" + "\n" + msg, "file_ids": id_list}
             ]
         }
     )
