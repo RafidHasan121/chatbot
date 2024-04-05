@@ -2,7 +2,7 @@
     "version": 2,
     "builds": [
       {
-        "src": "creatego/wsgi.py",
+        "src": "chatbot/wsgi.py",
         "use": "@vercel/python",
         "config": { "maxLambdaSize": "15mb", "runtime": "python3.9" }
       },
@@ -21,7 +21,7 @@
       },
       {
         "src": "/(.*)",
-        "dest": "creatego/wsgi.py"
+        "dest": "chatbot/wsgi.py"
       }
     ]
   }
