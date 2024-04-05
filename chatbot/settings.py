@@ -87,7 +87,7 @@ WSGI_APPLICATION = 'chatbot.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'api_test',
+        'NAME': 'chatbot_db',
         'USER': 'postgres',
         'PASSWORD': '12345',
         'HOST': 'localhost',
