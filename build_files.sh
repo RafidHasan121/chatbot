@@ -1,3 +1,3 @@
-python -m pip
+python --version
 pip install -r requirements.txt
 python3 manage.py collectstatic
