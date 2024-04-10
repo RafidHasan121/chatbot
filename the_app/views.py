@@ -139,7 +139,7 @@ def get_request(client, run):
         )
         if run.status == 'completed':
             break
-        time.sleep(5)  # Wait for five second before checking again
+        time.sleep(1)  # Wait for five second before checking again
 
     # getting the thread messages list
     thread_messages = client.beta.threads.messages.list(run.thread_id)
