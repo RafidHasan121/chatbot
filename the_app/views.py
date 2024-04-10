@@ -1,3 +1,4 @@
+from io import BytesIO, StringIO
 import time
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -7,7 +8,6 @@ from openai import OpenAI
 from chatbot.settings import API_KEY, a_id
 import os
 from supabase import create_client, Client
-import sys
 import tiktoken
 
 def count_tokens(filename: str, model_name="gpt-4") -> int:
@@ -54,24 +54,11 @@ def create_chunks(the_file, model_name="gpt-4-turbo-preview", max_tokens_per_chu
 
     if current_chunk:
         chunks.append(current_chunk)
-
-    file_list = []
     
-    # Save each chunk to a separate text file
-    for i, chunk in enumerate(chunks):
-        chunk_file_path = f'chunk{i+1}.txt'
-        with open(chunk_file_path, 'w') as chunk_file:
-            chunk_file.write(chunk)
-        file_list.append(chunk_file_path)
-    
-    return file_list
+    return chunks
 
-# Example usage
-# create_chunks('songs_original.txt', model_name="gpt-4")
 
-def init_supabase():
-    url: str = os.environ.get("SUPABASE_URL")
-    key: str = os.environ.get("SUPABASE_KEY")
+def init_supabase(url: str = os.environ.get("SUPABASE_URL"), key: str = os.environ.get("SUPABASE_KEY")):
     supabase: Client = create_client(url, key)
     return supabase
 
@@ -117,12 +104,18 @@ def new_run_request(client, msg, project_name):
     
     # create files in openai
     id_list = []
-    for each in file_list:
+    for i, chunk in enumerate(file_list):
+        in_memory_file = StringIO()
+        in_memory_file.write(chunk)
+        encoded_bytes = in_memory_file.getvalue().encode('utf-8')
+        bytes_io = BytesIO(encoded_bytes)
+        bytes_io.name = f'chunk{i+1}.txt' 
         file_object = client.files.create(
-            file=open(each, "rb"),
+            file=bytes_io,
             purpose="assistants"
         )
         id_list.append(file_object.id)
+        print(file_object)
     
     # create run 
     run = client.beta.threads.create_and_run(
